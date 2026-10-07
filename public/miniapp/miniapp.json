@@ -1,0 +1,33 @@
+{
+  "packageName": "com.personal.ringshortcuts",
+  "version": "0.3.4",
+  "name": "Personal Hub",
+  "description": "Ring launcher with developer-mode background app controls and installed Notify diagnostics",
+  "icon": "icon.png",
+  "type": "standard",
+  "sdkVersion": "3.2.1",
+  "entry": {
+    "background": "background/index.js",
+    "ui": "ui/index.html"
+  },
+  "hardwareRequirements": [
+    {
+      "type": "DISPLAY",
+      "level": "REQUIRED"
+    }
+  ],
+  "permissions": [
+    {
+      "type": "READ_NOTIFICATIONS",
+      "description": "Count notification events supplied by Mentra and show recent notifications"
+    },
+    {
+      "type": "CALENDAR",
+      "description": "Display upcoming calendar events on lookup"
+    },
+    {
+      "type": "LOCATION",
+      "description": "Fetch local weather"
+    }
+  ]
+}

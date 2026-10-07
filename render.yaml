@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: personal-hub
+    runtime: static
+    buildCommand: "true"
+    staticPublishPath: ./public
+    headers:
+      - path: /miniapp/miniapp.json
+        name: Cache-Control
+        value: no-cache
+      - path: /miniapp/bundle.zip
+        name: Cache-Control
+        value: no-cache
