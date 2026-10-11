@@ -1,0 +1,24 @@
+{
+  "name": "ring-shortcuts",
+  "version": "0.4.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run scripts/dev-lan.ts",
+    "build": "bun run build.ts",
+    "release": "mentra-miniapp release",
+    "pack": "mentra-miniapp pack",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@mentra/miniapp": "3.2.1"
+  },
+  "devDependencies": {
+    "@mentra/miniapp-cli": "0.1.0-dev.0",
+    "@types/node": "26.6.4",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2",
+    "bun": "1.4.2"
+  }
+}

@@ -1,0 +1,2 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {verseOfDay,hudLines,initialData,defaults} from '../src/hud/core.ts';
+test('Daily verse is stable within a date, changes tomorrow, and occupies final HUD row',()=>{const morning=new Date(2026,9,6,1).getTime(),night=new Date(2026,9,6,23).getTime(),tomorrow=new Date(2026,9,7,1).getTime();assert.equal(verseOfDay(morning),verseOfDay(night));assert.notEqual(verseOfDay(morning),verseOfDay(tomorrow));assert.equal(hudLines(initialData(),defaults,morning).at(-1),verseOfDay(morning));});

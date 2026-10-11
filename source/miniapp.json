@@ -1,0 +1,37 @@
+{
+  "packageName": "com.personal.ringshortcuts",
+  "version": "0.4.1",
+  "name": "Personal Hub",
+  "description": "Personal HUD, ring shortcuts, and built-in Gemini Quick Insight",
+  "icon": "icon.png",
+  "type": "standard",
+  "sdkVersion": "3.2.1",
+  "entry": {
+    "background": "background/index.js",
+    "ui": "ui/index.html"
+  },
+  "hardwareRequirements": [
+    {
+      "type": "DISPLAY",
+      "level": "REQUIRED"
+    }
+  ],
+  "permissions": [
+    {
+      "type": "READ_NOTIFICATIONS",
+      "description": "Count notification events supplied by Mentra and show recent notifications"
+    },
+    {
+      "type": "CALENDAR",
+      "description": "Display upcoming calendar events on lookup"
+    },
+    {
+      "type": "LOCATION",
+      "description": "Fetch local weather"
+    },
+    {
+      "type": "MICROPHONE",
+      "description": "Listen for completed speech to generate Gemini Quick Insights"
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 {
   "packageName": "com.personal.ringshortcuts",
-  "version": "0.3.4",
+  "version": "0.4.1",
   "name": "Personal Hub",
-  "description": "Ring launcher with developer-mode background app controls and installed Notify diagnostics",
+  "description": "Personal HUD, ring shortcuts, and built-in Gemini Quick Insight",
   "icon": "icon.png",
   "type": "standard",
   "sdkVersion": "3.2.1",
@@ -28,6 +28,10 @@
     {
       "type": "LOCATION",
       "description": "Fetch local weather"
+    },
+    {
+      "type": "MICROPHONE",
+      "description": "Listen for completed speech to generate Gemini Quick Insights"
     }
   ]
 }

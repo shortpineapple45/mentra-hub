@@ -1,0 +1,2 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {initialData,batteryText} from '../src/hud/core.ts';
+test('Original battery behavior retains readings and uses 15-minute old indicator',()=>{const data={...initialData(),connected:true,battery:73,batteryAt:1000};assert.equal(batteryText(data,122000),'[=] 73%');assert.equal(batteryText({...data,connected:false},1001),'[=] 73%');assert.equal(batteryText(data,902000),'[=] 73% old');assert.equal(batteryText({...data,charging:true},1001),'[=] 73%+');});

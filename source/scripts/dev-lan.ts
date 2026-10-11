@@ -1,0 +1,10 @@
+import os from 'node:os';
+import {dev} from '@mentra/miniapp-cli';
+const original=os.networkInterfaces;
+const all=original();
+const wanted=process.env.RING_LAN_IP;
+const entries=Object.values(all).flatMap(v=>v??[]).filter(v=>v.family==='IPv4'&&!v.internal&&!v.address.startsWith('169.254.')&&(!wanted||v.address===wanted));
+if(!entries.length)throw Error('No usable LAN IPv4 address. Set RING_LAN_IP to the IPv4 address shown by Get-NetIPConfiguration.');
+os.networkInterfaces=()=>({RingLAN:entries});
+console.log('Install QR uses LAN address '+entries[0].address+'. Keep this window running.');
+await dev({cwd:process.cwd()});
