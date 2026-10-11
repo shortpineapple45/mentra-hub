@@ -221,12 +221,11 @@
   // src/insight/core.ts
   var defaults = { endpoint: "", words: 20, frequency: 4, duration: 10, area: "" };
   function normalize(s) {
-    let endpoint = String(s.endpoint || "").trim().replace(/\/+$/, "");
-    try {
-      const u = new URL(endpoint);
-      endpoint = u.origin + u.pathname.replace(/\/(?:v1\/chat|health)\/?$/, "").replace(/\/+$/, "");
-    } catch {}
+    const endpoint = String(s.endpoint || "").trim().replace(/\/+$/, "").replace(/\/(?:v1\/chat|health)$/i, "");
     return { endpoint: endpoint.slice(0, 2048), words: Math.max(8, Math.min(40, Number(s.words) || 20)), frequency: Math.max(1, Math.min(5, Math.round(Number(s.frequency) || 4))), duration: Math.max(3, Math.min(30, Number(s.duration) || 10)), area: String(s.area || "").trim().slice(0, 120) };
+  }
+  function validEndpoint(value) {
+    return /^https:\/\/[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::\d{1,5})?(?:\/[^\s?#@]*)?$/i.test(value);
   }
   function insight(raw, limit) {
     const text = raw.trim().replace(/^['"`]+|['"`]+$/g, "").trim();
@@ -310,15 +309,12 @@
     function endpoint() {
       if (!key)
         throw Error("Save your private PC API key first.");
-      let u;
-      try {
-        u = new URL(state.settings.endpoint);
-      } catch {
-        throw Error("Save the HTTPS address from your desktop app first.");
-      }
-      if (u.protocol !== "https:" || u.username || u.password)
-        throw Error("Use an HTTPS address without a key in the URL.");
-      return state.settings.endpoint;
+      const address = state.settings.endpoint;
+      if (!address)
+        throw Error("No PC address saved. Paste the desktop HTTPS address and tap Save & check PC connection.");
+      if (!validEndpoint(address))
+        throw Error("Invalid PC address. Paste the complete https:// address from your desktop app.");
+      return address;
     }
     async function call(path, body) {
       const base = endpoint();

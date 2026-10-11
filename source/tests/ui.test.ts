@@ -13,7 +13,8 @@ test('Combined UI starts against actual HTML and completes host handshake withou
  vm.runInNewContext(bundle.outputFiles[0].text,{console,document:{getElementById:(id:string)=>elements.get(id)??null,querySelectorAll:()=>[],createElement:()=>make()},window:{addEventListener(){}},navigator:{},mentra:{on:(name:string,f:Function)=>handlers[name]=f,send:(...args:any[])=>sent.push(args),ready:()=>ready++},setInterval:(f:Function)=>{ticks.push(f);return 1;},setTimeout,clearTimeout});
  assert.equal(ready,1);assert.ok(elements.get('apps')!.children.length===4);
  assert.ok(!elements.has('hud-panel'));assert.ok(!elements.has('insight-start'));assert.ok(!elements.has('insight-provider'));
- elements.get('insight-connect')!.onclick!();assert.equal(sent.at(-1)[0],'insightConnect');
+ elements.get('insight-endpoint')!.value='https://new.example';elements.get('insight-key')!.value='new-private-test-key';
+ elements.get('insight-connect')!.onclick!();assert.equal(sent.at(-2)[0],'insightSave');assert.equal(sent.at(-2)[1].key,'new-private-test-key');assert.equal(sent.at(-2)[1].settings.endpoint,'https://new.example');assert.equal(sent.at(-1)[0],'insightConnect');assert.equal(elements.get('insight-key')!.value,'');
  elements.get('insight-save')!.onclick!();assert.equal(sent.at(-1)[0],'insightSave');
  elements.get('open')!.onclick!();assert.equal(sent.at(-1)[0],'command');
  elements.get('apps')!.children[1].children[1].onclick();assert.deepEqual(sent.at(-1),['selectApp',1]);

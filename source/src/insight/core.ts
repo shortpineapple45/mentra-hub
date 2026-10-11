@@ -1,7 +1,8 @@
 export const SILENT='NO_INSIGHT';
 export type Settings={endpoint:string;words:number;frequency:number;duration:number;area:string};
 export const defaults:Settings={endpoint:'',words:20,frequency:4,duration:10,area:''};
-export function normalize(s:Partial<Settings>):Settings{let endpoint=String(s.endpoint||'').trim().replace(/\/+$/,'');try{const u=new URL(endpoint);endpoint=u.origin+u.pathname.replace(/\/(?:v1\/chat|health)\/?$/,'').replace(/\/+$/,'');}catch{}return {endpoint:endpoint.slice(0,2048),words:Math.max(8,Math.min(40,Number(s.words)||20)),frequency:Math.max(1,Math.min(5,Math.round(Number(s.frequency)||4))),duration:Math.max(3,Math.min(30,Number(s.duration)||10)),area:String(s.area||'').trim().slice(0,120)};}
+export function normalize(s:Partial<Settings>):Settings{const endpoint=String(s.endpoint||'').trim().replace(/\/+$/,'').replace(/\/(?:v1\/chat|health)$/i,'');return {endpoint:endpoint.slice(0,2048),words:Math.max(8,Math.min(40,Number(s.words)||20)),frequency:Math.max(1,Math.min(5,Math.round(Number(s.frequency)||4))),duration:Math.max(3,Math.min(30,Number(s.duration)||10)),area:String(s.area||'').trim().slice(0,120)};}
+export function validEndpoint(value:string){return /^https:\/\/[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::\d{1,5})?(?:\/[^\s?#@]*)?$/i.test(value);}
 export function insight(raw:string,limit:number){const text=raw.trim().replace(/^['"`]+|['"`]+$/g,'').trim();if(!text||/^NO_INSIGHT[.!]?$/i.test(text))return '';return text.replace(/\s+/g,' ').split(' ').slice(0,limit).join(' ');}
 export const levels=['','Quiet — major corrections only','Selective — questions and clear corrections','Balanced — useful explanations and context','Helpful — explain names and concepts','Frequent — add context whenever useful'];
 export function prompt(words:number,frequency=4){const policies=[

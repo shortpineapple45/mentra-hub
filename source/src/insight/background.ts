@@ -1,6 +1,6 @@
 import type {TypedMiniappSession} from '@mentra/miniapp/background';
 import type {Channels as HubChannels} from '../shared/core';
-import {defaults,normalize,insight,prompt,lookupQuery,type State} from './core';
+import {defaults,normalize,validEndpoint,insight,prompt,lookupQuery,type State} from './core';
 export function installInsight(session:TypedMiniappSession<HubChannels>,canDisplay:()=>boolean){
  let key='',alive=true,busy=false,epoch=0,dirty=false,storageWork:Promise<void>=Promise.resolve();
  let timer:ReturnType<typeof setTimeout>|undefined,off:(()=>void)|undefined,displayToken:string|undefined;
@@ -13,7 +13,8 @@ export function installInsight(session:TypedMiniappSession<HubChannels>,canDispl
  async function display(text:string){if(!canDisplay()){status('PC replied. Select Quick Insight to show it on glasses.');return;}const d=session.capabilities?.display;if(!d){status('PC replied; no glasses display reported. See phone preview.');return;}const result=await session.display.render([{type:'text',id:'insight',box:{x:0,y:0,w:d.width??640,h:d.height??200},text,style:{maxLines:5,overflow:'ellipsis'}}],{view:'main',durationMs:state.settings.duration*1000});if(result.status==='blocked')status('Glasses display blocked: '+result.reason);else displayToken=result.displayToken;}
  function cancel(){epoch++;if(timer)clearTimeout(timer);timer=undefined;off?.();off=undefined;dirty=false;context=[];state.running=false;}
  function schedule(){if(!state.running||!dirty||busy||timer)return;timer=setTimeout(()=>{timer=undefined;void request();},0);}
- function endpoint(){if(!key)throw Error('Save your private PC API key first.');let u:URL;try{u=new URL(state.settings.endpoint);}catch{throw Error('Save the HTTPS address from your desktop app first.');}if(u.protocol!=='https:'||u.username||u.password)throw Error('Use an HTTPS address without a key in the URL.');return state.settings.endpoint;}
+ function endpoint(){if(!key)throw Error('Save your private PC API key first.');const address=state.settings.endpoint;if(!address)throw Error('No PC address saved. Paste the desktop HTTPS address and tap Save & check PC connection.');if(!validEndpoint(address))throw Error('Invalid PC address. Paste the complete https:// address from your desktop app.');return address;}
+
  // Promise timeout works even in hosts without AbortSignal.timeout.
  async function call(path:string,body?:unknown):Promise<Record<string,unknown>>{
   const base=endpoint();let timeout:ReturnType<typeof setTimeout>|undefined;
