@@ -1,7 +1,7 @@
 export const SILENT='NO_INSIGHT';
-export type Settings={model:string;words:number;frequency:number;duration:number;web:boolean;area:string};
-export const defaults:Settings={model:'gemini-3.5-flash-lite',words:20,frequency:4,duration:10,web:false,area:''};
-export function normalize(s:Partial<Settings>):Settings{return {model:s.model==='gemini-2.5-flash-lite'?s.model:defaults.model,words:Math.max(8,Math.min(40,Number(s.words)||20)),frequency:Math.max(1,Math.min(5,Math.round(Number(s.frequency)||4))),duration:Math.max(3,Math.min(30,Number(s.duration)||10)),web:s.web===true,area:String(s.area||'').trim().slice(0,120)};}
+export type Settings={provider:'gemini'|'local';endpoint:string;model:string;words:number;frequency:number;duration:number;web:boolean;area:string};
+export const defaults:Settings={provider:'gemini',endpoint:'',model:'gemini-3.5-flash-lite',words:20,frequency:4,duration:10,web:false,area:''};
+export function normalize(s:Partial<Settings>):Settings{return {provider:s.provider==='local'?'local':'gemini',endpoint:String(s.endpoint||'').trim().replace(/\/+$/,'').slice(0,2048),model:s.model==='gemini-2.5-flash-lite'?s.model:defaults.model,words:Math.max(8,Math.min(40,Number(s.words)||20)),frequency:Math.max(1,Math.min(5,Math.round(Number(s.frequency)||4))),duration:Math.max(3,Math.min(30,Number(s.duration)||10)),web:s.web===true,area:String(s.area||'').trim().slice(0,120)};}
 export function insight(raw:string,limit:number){const text=raw.trim().replace(/^['"`]+|['"`]+$/g,'').trim();if(!text||/^NO_INSIGHT[.!]?$/i.test(text))return '';return text.replace(/\s+/g,' ').split(' ').slice(0,limit).join(' ');}
 export const levels=['','Quiet — major corrections only','Selective — questions and clear corrections','Balanced — useful explanations and context','Helpful — explain names and concepts','Frequent — add context whenever useful'];
 export function prompt(words:number,frequency=4){const policies=[

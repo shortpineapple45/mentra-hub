@@ -11,7 +11,7 @@ test('Combined UI starts against actual HTML and completes host handshake and HU
  const handlers:Record<string,Function>={},ticks:Function[]=[],sent:any[]=[];let ready=0;
  const bundle=await build({entryPoints:['src/ui/index.ts'],bundle:true,write:false,format:'iife'});
  vm.runInNewContext(bundle.outputFiles[0].text,{console,document:{getElementById:(id:string)=>elements.get(id)??null,querySelectorAll:()=>[],createElement:()=>make()},window:{addEventListener(){}},navigator:{},mentra:{on:(name:string,f:Function)=>handlers[name]=f,send:(...args:any[])=>sent.push(args),ready:()=>ready++},setInterval:(f:Function)=>{ticks.push(f);return 1;},setTimeout,clearTimeout});
- assert.equal(ready,1);assert.equal(elements.get('hud-host')!.textContent,'MENTRA MINIAPP');assert.ok(elements.get('apps')!.children.length===6);
+ assert.equal(ready,1);assert.equal(elements.get('hud-host')!.textContent,'MENTRA MINIAPP');assert.ok(elements.get('apps')!.children.length===4);
  ticks.forEach(f=>f());assert.ok(elements.get('hud-clock')!.textContent);
  elements.get('hud-refresh')!.onclick!();assert.equal(sent.at(-1)[0],'hudRefresh');
  elements.get('insight-start')!.onclick!();assert.equal(sent.at(-1)[0],'insightStart');

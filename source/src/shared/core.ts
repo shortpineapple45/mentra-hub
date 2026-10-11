@@ -1,5 +1,5 @@
 import type {Channels as InsightChannels} from '../insight/core';
-export const apps=[{name:'Close menu',packageName:''},{name:'Merge',packageName:'com.mentra.merge'},{name:'Translation',packageName:'com.mentra.translation'},{name:'Notes',packageName:'com.mentra.notes'},{name:'Teleprompter',packageName:'com.mentra.teleprompter'},{name:'Quick Insight',packageName:'internal.quickinsight'}];
+export const apps=[{name:'Close menu',packageName:''},{name:'Quick Insight',packageName:'internal.quickinsight'},{name:'Translation',packageName:'com.mentra.translation'},{name:'Notes',packageName:'com.mentra.notes'}]; 
 export type State={open:boolean;selected:number;status:string;commands:number;displayToken?:string;active?:string;notificationEvents?:number;notifyStatus?:string;notes?:string;interop?:string};
 export type Command='pause'|'play'|'nexttrack'|'previoustrack'|'seekforward'|'seekbackward'|'open'|'close'|'select';
 export function step(s:State,c:Command):{state:State;launch?:string}{

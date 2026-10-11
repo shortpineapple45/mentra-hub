@@ -219,9 +219,9 @@
   });
 
   // src/insight/core.ts
-  var defaults = { model: "gemini-3.5-flash-lite", words: 20, frequency: 4, duration: 10, web: false, area: "" };
+  var defaults = { provider: "gemini", endpoint: "", model: "gemini-3.5-flash-lite", words: 20, frequency: 4, duration: 10, web: false, area: "" };
   function normalize(s) {
-    return { model: s.model === "gemini-2.5-flash-lite" ? s.model : defaults.model, words: Math.max(8, Math.min(40, Number(s.words) || 20)), frequency: Math.max(1, Math.min(5, Math.round(Number(s.frequency) || 4))), duration: Math.max(3, Math.min(30, Number(s.duration) || 10)), web: s.web === true, area: String(s.area || "").trim().slice(0, 120) };
+    return { provider: s.provider === "local" ? "local" : "gemini", endpoint: String(s.endpoint || "").trim().replace(/\/+$/, "").slice(0, 2048), model: s.model === "gemini-2.5-flash-lite" ? s.model : defaults.model, words: Math.max(8, Math.min(40, Number(s.words) || 20)), frequency: Math.max(1, Math.min(5, Math.round(Number(s.frequency) || 4))), duration: Math.max(3, Math.min(30, Number(s.duration) || 10)), web: s.web === true, area: String(s.area || "").trim().slice(0, 120) };
   }
   function insight(raw, limit) {
     const text = raw.trim().replace(/^['"`]+|['"`]+$/g, "").trim();
@@ -262,7 +262,7 @@
 
   // src/insight/background.ts
   function installInsight(session, canDisplay) {
-    let key = "", alive = true, busy = false, epoch = 0, backoff = 0, dirty = false;
+    let key = "", keys = { gemini: "", local: "" }, alive = true, busy = false, epoch = 0, backoff = 0, dirty = false;
     let timer, off, displayToken;
     let context = [];
     let state = { ready: false, running: false, hasKey: false, settings: defaults, status: "Connecting to Mentra", transcript: "", lastInsight: "", requests: 0, silent: 0, latency: 0, history: [] };
@@ -322,6 +322,23 @@
       state.requests++;
       send();
       const settings = state.settings;
+      if (settings.provider === "local") {
+        if (web)
+          throw new Error("Web search is not connected to your PC server yet.");
+        let url;
+        try {
+          url = new URL(settings.endpoint);
+        } catch {
+          throw new Error("Save your Local AI HTTPS address first.");
+        }
+        if (url.protocol !== "https:" || url.username || url.password)
+          throw new Error("Local AI needs an HTTPS address without credentials in the URL.");
+        const response = await fetch(settings.endpoint + "/v1/chat", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + key }, body: JSON.stringify({ system, text }), signal: AbortSignal.timeout(60000) });
+        if (!response.ok)
+          throw new Error(response.status === 401 ? "Local AI rejected your key. Save the key from your PC setup." : "Local AI request failed (HTTP " + response.status + "). Keep your PC, server and tunnel running.");
+        const data = await response.json();
+        return { candidates: [{ content: { parts: [{ text: typeof data.text === "string" ? data.text : "" }] } }] };
+      }
       const body = { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text }] }], ...web ? { tools: [{ google_search: {} }] } : {}, generationConfig: { temperature: 0.2, maxOutputTokens: web ? 512 : 256, thinkingConfig: settings.model.startsWith("gemini-2.5") ? { thinkingBudget: 0 } : { thinkingLevel: "minimal" } } };
       let timeout;
       try {
@@ -355,7 +372,7 @@
         return;
       }
       if (!key) {
-        status("Save your Gemini API key first");
+        status("Save the API key for your selected provider first");
         return;
       }
       if (!test && !state.running)
@@ -386,7 +403,10 @@ Conversation:
         state.lookupStatus = "Regular insight";
         if (query) {
           state.lookupStatus = "Current information needs a web lookup";
-          if (!settings.web) {
+          if (settings.provider === "local") {
+            raw = "Live web search is not connected to your PC server yet.";
+            state.lookupStatus = "Local AI web search is not configured";
+          } else if (!settings.web) {
             raw = "Live lookup is off. Enable web lookup in Quick Insight settings.";
             state.lookupStatus = "Web lookup is off";
           } else {
@@ -429,16 +449,18 @@ Latest conversation: ` + text, true);
     }
     session.on("ready", () => {
       (async () => {
-        key = await session.storage.get("gemini-key") || "";
+        keys.gemini = await session.storage.get("gemini-key") || "";
+        keys.local = await session.storage.get("local-ai-key") || "";
         const stored = await session.storage.get("insight-settings");
         if (stored) {
           try {
             state.settings = normalize(JSON.parse(stored));
           } catch {}
         }
+        key = keys[state.settings.provider];
         state.ready = true;
         state.hasKey = !!key;
-        status(key ? "Ready — tap Start listening" : "Save your Gemini API key to begin");
+        status(key ? "Ready — tap Start listening" : "Save your selected provider’s API key to begin");
       })().catch(error);
     });
     session.ui.onOpen(send);
@@ -446,21 +468,23 @@ Latest conversation: ` + text, true);
     session.ui.on("insightSave", (v) => {
       (async () => {
         cancel();
-        if (v.key.trim())
-          key = v.key.trim();
         state.settings = normalize(v.settings);
+        if (v.key.trim())
+          keys[state.settings.provider] = v.key.trim();
+        key = keys[state.settings.provider];
         await session.storage.set("insight-settings", JSON.stringify(state.settings));
         if (key)
-          await session.storage.set("gemini-key", key);
+          await session.storage.set(state.settings.provider === "local" ? "local-ai-key" : "gemini-key", key);
         state.hasKey = !!key;
         status("Saved on this phone. Tap Start listening.");
       })().catch(error);
     });
     session.ui.on("insightForget", () => {
       cancel();
+      keys[state.settings.provider] = "";
       key = "";
       state.hasKey = false;
-      session.storage.delete("gemini-key").then(() => status("Key removed")).catch(error);
+      session.storage.delete(state.settings.provider === "local" ? "local-ai-key" : "gemini-key").then(() => status("Key removed")).catch(error);
     });
     function start() {
       if (!state.ready || !key) {
@@ -5329,7 +5353,7 @@ This is a display test.`).catch(error);
     };
   }
   // src/shared/core.ts
-  var apps = [{ name: "Close menu", packageName: "" }, { name: "Merge", packageName: "com.mentra.merge" }, { name: "Translation", packageName: "com.mentra.translation" }, { name: "Notes", packageName: "com.mentra.notes" }, { name: "Teleprompter", packageName: "com.mentra.teleprompter" }, { name: "Quick Insight", packageName: "internal.quickinsight" }];
+  var apps = [{ name: "Close menu", packageName: "" }, { name: "Quick Insight", packageName: "internal.quickinsight" }, { name: "Translation", packageName: "com.mentra.translation" }, { name: "Notes", packageName: "com.mentra.notes" }];
   function step(s, c) {
     const n = { ...s };
     if (c === "play")
