@@ -12,9 +12,9 @@ registerMiniapp<Channels>(session=>{
  async function clear(){if(state.displayToken||ownsFrame){await session.display.render([],{view:'main',ifDisplayToken:state.displayToken});state.displayToken=undefined;ownsFrame=false;}}
  async function menu(){const start=Math.max(1,state.selected-3);const visible=[0,...Array.from({length:Math.min(4,apps.length-start)},(_,i)=>start+i)];await text(visible.map(i=>(i===state.selected?'> ':'  ')+apps[i].name).join('\n'));}
  async function stopActive(){if(state.active){if(state.active==='internal.quickinsight')await insight.stop();else await session.miniapps.stop(state.active);state.active=undefined;notes=[];state.notes=undefined;}await clear();}
- async function launch(pkg:string){if(pkg==='internal.quickinsight'){await clear();if(insight.start()){state.active=pkg;state.status='Quick Insight listening. Pause to stop and return to menu';}else{state.open=true;state.status='Enter a Gemini key in Quick Insight settings first';await menu();}return;}const inventory=await session.miniapps.list();state.interop='Developer app controls available';const app=inventory.find(a=>a.packageName===pkg);if(!app)throw Error('Install '+apps.find(a=>a.packageName===pkg)?.name+' in Mentra first');
+ async function launch(pkg:string){if(pkg==='internal.quickinsight'){await clear();await insight.whenReady();if(insight.start()){state.active=pkg;state.status='Quick Insight listening. Pause to stop and return to menu';}else{state.open=true;state.status='Save your PC address and private key in Quick Insight settings first';await menu();}return;}const inventory=await session.miniapps.list();state.interop='Developer app controls available';const app=inventory.find(a=>a.packageName===pkg);if(!app)throw Error('Install '+apps.find(a=>a.packageName===pkg)?.name+' in Mentra first');
  await clear();await session.miniapps.start(pkg);state.active=pkg;
- if(pkg==='com.mentra.teleprompter'){state.status='Opening the actual Teleprompter app. Return to Personal Hub and re-enable controls afterward.';snapshot();session.system.openUrl(deepLink(pkg));return;}
+
  const invoke=(id:string,params:Record<string,unknown>)=>{if(!app.actions?.some(a=>a.id===id))throw Error('This installed app does not expose '+id);return session.actions.invoke(pkg,id,params);};
  try{if(pkg==='com.mentra.translation')await invoke('start_translation',{targetLanguage:language});
  if(pkg==='com.mentra.notes'){const result=await invoke('get_notes',{limit:50}) as {notes?:Record<string,unknown>[]};notes=(result.notes??[]).map(n=>String(n.title??'Note')+'\n'+String(n.content??n.summary??''));noteIndex=0;state.notes=notes.length?notes[0]:'No notes returned';await text(state.notes);}
@@ -28,6 +28,7 @@ registerMiniapp<Channels>(session=>{
  else if(state.open)await menu();else await clear();snapshot();}
  function enqueue(work:()=>Promise<void>){queue=queue.then(work).catch(e=>{state.status=String(e);snapshot();});return queue;}
  session.ui.on('command',command=>enqueue(()=>handle(command)));
+ session.ui.on('selectApp',index=>enqueue(async()=>{if(!alive||!ready||!Number.isInteger(index)||index<0||index>=apps.length)return;await stopActive();await insight.stop();state.selected=index;state.open=false;if(index===0){state.status='Menu closed';}else{try{await launch(apps[index].packageName);}catch(e){state.open=true;state.status=String(e);await menu();}}snapshot();}));
  session.ui.on('settings',v=>{language=v.language.trim()||'en';state.status='Launch settings applied';snapshot();});
  session.on('ready',()=>{ready=true;snapshot();});session.ui.onOpen(snapshot);
  const off=session.input.onTouch(t=>{const c:Command|undefined=t.kind==='single_tap'?'nexttrack':t.kind==='double_tap'?'select':t.kind==='long_press'?'open':undefined;if(c)return enqueue(()=>handle(c));});

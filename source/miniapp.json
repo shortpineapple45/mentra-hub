@@ -1,8 +1,8 @@
 {
   "packageName": "com.personal.ringshortcuts",
-  "version": "0.4.4",
+  "version": "0.5.0",
   "name": "Personal Hub",
-  "description": "Personal HUD, ring shortcuts, and built-in Gemini Quick Insight",
+  "description": "Personal HUD, ring shortcuts, and built-in private PC Quick Insight",
   "icon": "icon.png",
   "type": "standard",
   "sdkVersion": "3.2.1",
@@ -31,7 +31,7 @@
     },
     {
       "type": "MICROPHONE",
-      "description": "Listen for completed speech to generate Gemini Quick Insights"
+      "description": "Listen for completed speech to generate private PC Quick Insights"
     }
   ]
 }
