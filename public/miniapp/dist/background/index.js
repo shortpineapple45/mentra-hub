@@ -251,7 +251,7 @@
 
   // src/insight/background.ts
   function installInsight(session, canDisplay) {
-    let key = "", alive = true, busy = false, epoch = 0, dirty = false, revision = 0, pendingTest, displayRevision = 0, storageWork = Promise.resolve();
+    let key = "", alive = true, busy = false, epoch = 0, dirty = false, revision = 0, pendingTest, displayRevision = 0, holdUntil = 0, storageWork = Promise.resolve();
     let timer, off, displayToken, pageTimer;
     let context = [];
     let state = { ready: false, running: false, hasKey: false, settings: defaults, status: "Connecting to Mentra", transcript: "", lastInsight: "", requests: 0, silent: 0, latency: 0, history: [], transcriptEvents: 0, lastResponse: "", connection: "Not checked" };
@@ -271,6 +271,7 @@
       pageTimer = undefined;
     }
     async function clear() {
+      holdUntil = 0;
       cancelPages();
       if (displayToken) {
         const token = displayToken;
@@ -310,6 +311,7 @@
             candidate = candidate.slice(0, boundary);
         }
         const id = "insight-" + frameId + "-" + ++page;
+        holdUntil = Date.now() + state.settings.duration * 1000;
         const result = await session.display.render([{ type: "text", id, box: { x: 0, y: 0, w: d.width ?? 640, h: d.height ?? 200 }, text: candidate, style: { maxLines: 5, overflow: "clip", breakMode: "word" } }], { view: "main", durationMs: state.settings.duration * 1000, includeTextLayout: true });
         if (!alive || serial !== displayRevision || generation !== epoch) {
           if (result.displayToken)
@@ -317,6 +319,7 @@
           return;
         }
         if (result.status === "blocked") {
+          holdUntil = 0;
           state.displayStatus = "Blocked: " + result.reason;
           status("Glasses display blocked: " + result.reason);
           return;
@@ -334,12 +337,15 @@
         send();
         if (rest)
           pageTimer = setTimeout(() => {
+            pageTimer = undefined;
             pageNext().catch(error);
           }, state.settings.duration * 1000);
+        schedule();
       }
       await pageNext();
     }
     function cancel() {
+      holdUntil = 0;
       epoch++;
       revision++;
       pendingTest = undefined;
@@ -354,14 +360,18 @@
       state.running = false;
     }
     function schedule() {
-      if (!pendingTest && (!state.running || !dirty) || busy || timer)
+      if (!pendingTest && (!state.running || !dirty) || busy || timer || pageTimer)
         return;
       timer = setTimeout(() => {
         timer = undefined;
+        if (holdUntil > Date.now() || pageTimer) {
+          schedule();
+          return;
+        }
         const test = pendingTest;
         pendingTest = undefined;
         request(test);
-      }, 0);
+      }, Math.max(0, holdUntil - Date.now()));
     }
     function endpoint() {
       if (!key)
@@ -444,7 +454,7 @@
 `);
       if (!text.trim())
         return;
-      const generation = epoch, requestRevision = revision, requestId = String(Date.now()) + "-" + String(state.requests + 1), settings = { ...state.settings };
+      const generation = epoch, requestId = String(Date.now()) + "-" + String(state.requests + 1), settings = { ...state.settings };
       busy = true;
       dirty = false;
       status("Sending prompt to your PC…");
@@ -459,10 +469,6 @@ Conversation (latest utterance last):
 ` + text });
         if (!alive || generation !== epoch)
           return;
-        if (requestRevision !== revision) {
-          status("Older reply ignored; checking the latest utterance.");
-          return;
-        }
         if (data.requestId && data.requestId !== requestId)
           throw Error("PC returned a mismatched request ID. Reply ignored.");
         let raw = typeof data.text === "string" ? data.text : "";
@@ -475,8 +481,6 @@ Conversation (latest utterance last):
           raw = "Live web search is not connected to your PC server yet.";
         const value = insight(raw, settings.words);
         if (!value) {
-          await clear();
-          state.lastInsight = "";
           state.silent++;
           status("PC returned NO_INSIGHT — intentionally no popup");
           return;
@@ -561,7 +565,6 @@ Conversation (latest utterance last):
           if (context.at(-1)?.text === text)
             return;
           revision++;
-          cancelPages();
           context.push({ text, at: Date.now() });
           context = context.slice(-6);
           dirty = true;
@@ -585,7 +588,6 @@ Conversation (latest utterance last):
     });
     session.ui.on("insightTest", (text) => {
       revision++;
-      cancelPages();
       pendingTest = text.slice(0, 3000);
       schedule();
     });
@@ -594,7 +596,7 @@ Conversation (latest utterance last):
 This is a display test.`).catch(error);
     });
     session.ui.on("insightClear", () => {
-      clear().catch(error);
+      clear().then(schedule).catch(error);
     });
     session.permissions.onPermissionError(() => status("Microphone permission failed. Check Mentra and iPhone microphone access."));
     session.on("error", () => status("Mentra host error. Restart this miniapp."));
